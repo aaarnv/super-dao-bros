@@ -38,6 +38,9 @@ Then read `~/Projects/super-dao-memories/contacts/{slug}.md` and parse:
 - Network (to know platform constraints — e.g., WhatsApp has message length limits)
 - Tier (inner-circle gets more personal touch)
 - `data_quality` — if `"insufficient"`, fall back to `my-style.md` tier variation for this contact's tier
+- `my_message_count` — if this is 0 or very low (< 3), the profile likely doesn't have your voice in this chat
+
+**Low voice data safety net:** If `my_message_count < 3` in the profile, paginate deeper into the chat history (3-5 pages using `cursor` + `direction: "before"`) to find your actual messages before composing. This prevents AI-sounding messages in chats where init didn't capture enough of your voice. Also read `my-style.md` for baseline patterns.
 
 **Fallback chain:**
 1. Contact-specific profile (best — exact voice for this person)

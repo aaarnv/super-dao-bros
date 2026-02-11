@@ -82,12 +82,17 @@ Update `state.json`:
 
 For each chat, process it:
 
-1. Use `mcp__beeper__list_messages` with `chat_id` and `limit: 200` to fetch recent messages
-2. **Sparse chat check:** If fewer than 10 messages are found, create a minimal profile with `data_quality: "insufficient"` in the frontmatter. Set tone profile to "insufficient data — will use default friendly casual" and skip sample exchanges. The contact still gets indexed and tiered
-3. Analyze the messages to determine:
+1. **Paginate to fetch up to 200 messages:** The `mcp__beeper__list_messages` tool returns ~20 messages per page. You MUST paginate to get sufficient history:
+   - Call `mcp__beeper__list_messages` with `chatID`
+   - If `hasMore` is true, use the oldest message's `id` as the `cursor` with `direction: "before"` to fetch the next page
+   - Repeat until you have ~200 messages OR `hasMore` is false
+   - **This is critical for voice calibration** — a single page often misses the user's own messages, making tone matching impossible
+   - Collect ALL messages into a single array before analysis
+2. **Sparse chat check:** If fewer than 10 total messages are found after pagination, create a minimal profile with `data_quality: "insufficient"` in the frontmatter. Set tone profile to "insufficient data — will use default friendly casual" and skip sample exchanges. The contact still gets indexed and tiered
+3. Analyze the full message history to determine:
    - **Network**: Extract from chat metadata (whatsapp, imessage, instagram, etc.)
-   - **Message count**: Total messages in the window, and how many are from the user
-   - **Frequency**: Calculate messages per week based on date range of the 200-message window
+   - **Message count**: Total messages in the window, and how many are from the user (`isSender: true`)
+   - **Frequency**: Calculate messages per week based on date range of the full message window
    - **Topics**: Extract 3-5 recurring topics from message content
    - **Tone profile**: Characterize both sides' communication style (formal/casual, emoji usage, message length, slang patterns)
    - **Sample exchanges**: Pick 2-3 representative back-and-forth pairs
@@ -107,9 +112,11 @@ slug: "{slug}"
 chat_id: "{chat_id}"
 network: "{network}"
 tier: "{tier}"
+type: "{single or group}"
 last_scanned: "{ISO timestamp}"
 message_count: {count}
 my_message_count: {my_count}
+data_quality: "{sufficient or insufficient}"
 topics: [{topics}]
 ---
 
