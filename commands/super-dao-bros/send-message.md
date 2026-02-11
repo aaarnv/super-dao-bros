@@ -102,9 +102,49 @@ After sending, pull the contact's latest 50 messages via `mcp__beeper__list_mess
 - Update message counts
 - This keeps profiles fresh without needing to re-run init
 
-### Step 8: Hand off to Anh
+### Step 8: Follow-up actions (MANDATORY — do NOT skip)
 
-After sending, if the message implies a follow-up action (scheduling a meetup, waiting for a reply, etc.), Anh automatically sets a follow-up reminder via `mcp__apple-mcp__reminders` — no need to ask.
+After EVERY send, you MUST check if the message or conversation implies any follow-up. This is not optional.
+
+**Scan the message + recent conversation for these triggers:**
+
+1. **Date/time mentioned** (meetup, hangout, plan, Tuesday, tomorrow, this weekend, etc.)
+   → Create a **calendar event** via `mcp__apple-mcp__calendar` with:
+   - Title: "{activity} with {contact/group name}"
+   - Best-guess time (default 6-8 PM if no time specified)
+   - Notes: "Planned in {chat name}. Details TBC — check GC."
+
+2. **Waiting for a response** (asked a question, made a request, need confirmation)
+   → Create a **reminder** via `mcp__apple-mcp__reminders` for 24h later:
+   - "Follow up with {name} about {topic}"
+
+3. **Commitment made** (said you'd do something, promised to send something, agreed to help)
+   → Create a **reminder** via `mcp__apple-mcp__reminders`:
+   - "{what you committed to} for {name}"
+   - Due: best-guess deadline or next day
+
+4. **No follow-up needed** (casual banter, reaction, convo is done)
+   → Skip — but you MUST explicitly confirm: "No follow-up needed."
+
+**Mirror to inbox:** Whenever you create a calendar event or reminder, ALSO add a matching item to `~/Projects/super-dao-memories/tasks/inbox.md`:
+```markdown
+- [ ] Meetup with Haraneesh squad — Tue Feb 17 (calendar)
+- [ ] Follow up with Ka about early mornings — due tomorrow (reminder)
+```
+This keeps inbox.md as the single source of truth. The next `/run` will sync completions back — if an inbox item is checked off, the corresponding reminder gets marked done in Apple Reminders too.
+
+**Always report what was created:**
+```
+📅 Created: "Meetup with Haraneesh squad" — Tue Feb 17, 6-8 PM
+```
+or
+```
+⏰ Reminder: "Follow up with Ka about early mornings" — tomorrow 10 AM
+```
+or
+```
+✓ No follow-up needed.
+```
 
 ### Error handling
 

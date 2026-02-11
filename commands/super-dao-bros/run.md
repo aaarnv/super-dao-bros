@@ -29,8 +29,11 @@ Before pulling existing tasks, the agents scan for things that SHOULD be tasks b
 3. Don't duplicate — check existing inbox items before adding
 
 **Anh scans for operational tasks:**
-1. **Calendar prep:** Use `mcp__apple-mcp__calendar` to get today + tomorrow's events. For any meeting/event that needs prep, context, or follow-up → generate task (e.g., "prep for 3pm meeting with X", "send follow-up from yesterday's call with Y")
-2. **Overdue reminders:** Use `mcp__apple-mcp__reminders` — any overdue items get escalated to inbox
+1. **Calendar sync:** Use `mcp__apple-mcp__calendar` to get today + tomorrow's events. For any meeting/event that needs prep, context, or follow-up → generate task. For events that already have a matching inbox item, skip. This is bidirectional — inbox stays in sync with calendar
+2. **Reminders sync:** Use `mcp__apple-mcp__reminders` to get ALL incomplete reminders (not just overdue). For each:
+   - If no matching inbox item exists → add it to inbox tagged `(reminder)`
+   - If a matching inbox item is already `- [x]` completed → mark the reminder as done in Apple Reminders
+   - If the reminder is overdue → flag it as urgent in inbox: `⚠️`
 3. **Herobrine results:** Check `state.json` for completed herobrine agents whose results haven't been reviewed → generate "review herobrine results for {task}"
 4. **Stale inbox:** If any inbox item has been sitting unchecked for 3+ days, flag it or suggest breaking it down
 5. Don't duplicate — check existing inbox items before adding
@@ -94,6 +97,11 @@ For each task, determine the execution route AND assign to the right agent:
 - **If Beeper unavailable this run:** Push task back to inbox for next run
 - Send immediately via `mcp__beeper__send_message` — no confirmation needed
 - **After sending:** Auto-refresh the contact's tone profile — pull their latest 50 messages and update `contacts/{slug}.md` with any new patterns
+- **MANDATORY follow-up check after every send:** Scan the message + conversation for follow-up triggers:
+  - **Date/time/plan mentioned** → create calendar event via `mcp__apple-mcp__calendar` (default 6-8 PM if no time)
+  - **Waiting for response** → create reminder via `mcp__apple-mcp__reminders` for 24h later
+  - **Commitment made** → create reminder with best-guess deadline
+  - If none apply, explicitly note "no follow-up needed" in the task result
 
 **Route: `inline` (strategic)** — big-picture questions, creative tasks, prioritization decisions
 - Nam handles directly with his decisive, vision-oriented style
@@ -141,7 +149,7 @@ As agents complete tasks and go idle:
 1. Check TaskList for completed tasks
 2. Collect results from both agents
 3. Update `~/Projects/super-dao-memories/tasks/queue.json` with final statuses
-4. If inbox tasks were completed, mark them as `- [x]` in `tasks/inbox.md`
+4. If inbox tasks were completed, mark them as `- [x]` in `tasks/inbox.md`. If the completed item was tagged `(reminder)`, also mark the corresponding Apple Reminder as done via `mcp__apple-mcp__reminders`
 5. Update `state.json`:
    - Set `last_run` to current ISO timestamp
    - Update `today_stats` with combined results from both agents
