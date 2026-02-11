@@ -1,0 +1,20 @@
+{
+  "name": "Nam Dao",
+  "role": "CEO",
+  "slug": "nam-dao",
+  "task_domains": [
+    "messaging",
+    "relationships",
+    "strategy",
+    "creative",
+    "high-stakes-comms"
+  ],
+  "routing_keywords": [
+    "message", "text", "reply", "send", "tell", "ask", "ping",
+    "follow up with", "check in", "catch up", "reach out"
+  ],
+  "today_stats": {
+    "messages_sent": 0,
+    "tasks_completed": 0
+  }
+}

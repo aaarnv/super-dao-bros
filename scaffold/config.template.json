@@ -1,0 +1,22 @@
+{
+  "self_chat_id": null,
+  "scan_depth": 200,
+  "tier_thresholds": {
+    "inner_circle_msgs_per_week": 5,
+    "regular_msgs_per_week": 1,
+    "acquaintance_msgs_per_month": 1
+  },
+  "batch_size": 5,
+  "herobrine_parallel_limit": 3,
+  "memories_repo": "~/Projects/super-dao-memories",
+  "auto_commit": true,
+  "mcp_status": {
+    "beeper": false,
+    "apple": false,
+    "youtube": false
+  },
+  "whitelist": {
+    "enabled": true,
+    "slugs": []
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "last_run": null,
+  "run_lock": false,
+  "queued_run": false,
+  "init_complete": false,
+  "init_progress": {
+    "phase": null,
+    "chats_scanned": 0,
+    "chats_total": 0,
+    "last_chat_id": null
+  },
+  "today_stats": {
+    "date": null,
+    "tasks_completed": 0,
+    "messages_sent": 0,
+    "videos_summarized": 0,
+    "herobrine_spawned": 0
+  },
+  "pending_herobrine": []
+}

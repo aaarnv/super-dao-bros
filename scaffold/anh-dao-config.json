@@ -1,0 +1,26 @@
+{
+  "name": "Anh Dao",
+  "role": "COO",
+  "slug": "anh-dao",
+  "task_domains": [
+    "scheduling",
+    "reminders",
+    "research",
+    "video-summaries",
+    "herobrine-management",
+    "operations",
+    "queue-management"
+  ],
+  "routing_keywords": [
+    "schedule", "remind", "calendar", "event", "reminder",
+    "watch", "summarize", "youtube", "research", "look up",
+    "organize", "herobrine", "spawn agent"
+  ],
+  "today_stats": {
+    "tasks_completed": 0,
+    "reminders_created": 0,
+    "events_scheduled": 0,
+    "videos_summarized": 0,
+    "herobrine_spawned": 0
+  }
+}
