@@ -23,7 +23,7 @@ Nam handles relationships and messaging strategy. Anh handles operations, schedu
 - Apple MCP plugin enabled (Settings > Extensions)
 - YouTube MCP plugin enabled (Settings > Extensions)
 - [Herobrine skill](https://github.com/...) installed (for scheduled execution)
-- [nchook](https://github.com/Who23/nchook) installed for real-time message watching (`brew install who23/formulae/nchook`)
+- [Hammerspoon](https://www.hammerspoon.org/) for real-time message watching (`brew install --cask hammerspoon`) — grant Accessibility permission
 
 ## Install
 

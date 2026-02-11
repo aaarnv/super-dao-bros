@@ -33,6 +33,15 @@ chmod +x "$HOME/.config/nchook/nchook_script"
 cp "$REPO_DIR/scaffold/beeper-watcher-state.template.json" "$CLAUDE_DIR/agents/beeper-watcher-state.json"
 echo "  ✓ nchook handler installed to ~/.config/nchook/nchook_script"
 
+# 2c. Install Hammerspoon config (real-time notification watcher)
+if [ -d "$HOME/.hammerspoon" ] && [ -f "$HOME/.hammerspoon/init.lua" ]; then
+  echo "  ⊘ Existing Hammerspoon config found — skipping (merge manually from agents/hammerspoon-init.lua)"
+else
+  mkdir -p "$HOME/.hammerspoon"
+  cp "$REPO_DIR/agents/hammerspoon-init.lua" "$HOME/.hammerspoon/init.lua"
+  echo "  ✓ Hammerspoon config installed to ~/.hammerspoon/init.lua"
+fi
+
 # 3. Scaffold memories repo (if it doesn't exist)
 if [ ! -d "$MEMORIES_DIR" ]; then
   echo "Creating memories repo..."
@@ -67,10 +76,10 @@ echo "  - Beeper Desktop running + Beeper MCP plugin enabled"
 echo "  - Apple MCP plugin enabled (for calendar/reminders)"
 echo "  - YouTube MCP plugin enabled (for video summaries)"
 echo "  - Herobrine skill installed (for scheduled execution)"
-echo "  - nchook for real-time watcher: brew install who23/formulae/nchook"
+echo "  - Hammerspoon for real-time watcher: brew install --cask hammerspoon"
 echo ""
 echo "To enable real-time message watching:"
-echo "  brew install who23/formulae/nchook"
-echo "  brew services start nchook"
+echo "  brew install --cask hammerspoon"
+echo "  open -a Hammerspoon  (grant Accessibility permission when prompted)"
 echo ""
 echo "Next step: Run /super-dao-bros:init in Claude Code"

@@ -303,34 +303,41 @@ Ask the user if they want to adjust any of the times.
 
 ### Step 11: Start real-time message watcher
 
-Set up nchook to trigger a Claude agent on every incoming Beeper notification:
+Set up Hammerspoon + nchook handler to trigger a Claude agent on incoming Beeper messages:
 
-1. **Check if nchook is installed:** Run `which nchook` or `brew list nchook`
-   - If not installed: `brew install who23/formulae/nchook`
+1. **Check if Hammerspoon is installed:**
+   - If not: `brew install --cask hammerspoon`
+   - Open Hammerspoon and grant Accessibility permission when prompted (System Settings → Privacy & Security → Accessibility)
 
-2. **Install the handler script:**
+2. **Install Hammerspoon config:**
+   Copy `agents/hammerspoon-init.lua` to `~/.hammerspoon/init.lua`. This watches for Beeper notifications via two methods:
+   - AXObserver on NotificationCenter (catches notification banners)
+   - Beeper dock badge polling (catches badge count changes every 5s)
+
+3. **Install the handler script:**
    ```bash
    mkdir -p ~/.config/nchook
    ```
-   Copy the nchook_script (from the super-dao-bros repo `agents/nchook_script`) to `~/.config/nchook/nchook_script` and make it executable.
-
-3. **Start nchook service:**
-   ```bash
-   brew services start nchook
-   ```
+   Copy `agents/nchook_script` to `~/.config/nchook/nchook_script` and make it executable. This is what Hammerspoon calls when a Beeper notification is detected — it checks the whitelist, cooldown, and fires a Claude agent.
 
 4. **Initialize watcher state:**
    Create `~/.claude/agents/beeper-watcher-state.json` with `{"cooldowns": {}}`
 
-5. **Test it:** Tell the user: "Real-time watcher is active. When someone messages you on Beeper, a Claude agent will fire within seconds to handle it. Whitelisted contacts only. 5-minute cooldown per sender to prevent loops."
+5. **Launch Hammerspoon:**
+   ```bash
+   open -a Hammerspoon
+   ```
+   You should see "Super DAO Bros watcher active" on screen.
+
+6. **Test it:** Tell the user: "Real-time watcher is active. When someone messages you on Beeper, a Claude agent will fire within seconds. Whitelisted contacts only. 5-minute cooldown per sender."
 
 Report:
 ```
 Real-time watcher:
-  nchook         → ✓ installed + running
+  Hammerspoon    → ✓ installed + running (Accessibility granted)
   Handler script → ✓ ~/.config/nchook/nchook_script
   Safeguards     → whitelist only, 5-min cooldown, run-lock respect
-  Kill switch    → brew services stop nchook
+  Kill switch    → quit Hammerspoon
 ```
 
 ### Step 12: Report
