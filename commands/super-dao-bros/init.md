@@ -175,7 +175,69 @@ Save the whitelist to `~/Projects/super-dao-memories/config.json` under a `white
 
 Profiles are still created for ALL contacts (so the system has memory), but only whitelisted contacts are actionable.
 
-### Step 7: Build contacts index
+### Step 7: Build user style profile
+
+After all contact profiles are built, aggregate your outgoing messages across ALL chats to build `~/Projects/super-dao-memories/my-style.md` — your master texting fingerprint.
+
+1. **Collect all your outgoing messages** from the profiles already scanned (you already have the data from Step 5 — no need to re-fetch)
+2. **Analyze your baseline style** across all conversations:
+   - Average message length
+   - Punctuation habits (periods? no periods? ellipsis?)
+   - Capitalization patterns (all lowercase? proper? mixed?)
+   - Emoji frequency and favorites
+   - Common slang, filler words, catchphrases
+   - Greeting/sign-off patterns
+   - Response patterns (one-liners? paragraphs? voice notes?)
+3. **Break down variations by tier:**
+   - How you text inner-circle vs regular vs acquaintance vs low-priority
+   - What changes: formality, length, emoji usage, slang density
+4. **Break down notable per-contact variations:**
+   - Contacts where your style significantly deviates from the tier norm
+   - Example: "With mom — full sentences, no slang, more emojis. With john — extremely casual, abbreviations, zero punctuation"
+5. **Write the profile** to `~/Projects/super-dao-memories/my-style.md`:
+
+```markdown
+---
+last_updated: "{ISO timestamp}"
+total_messages_analyzed: {count}
+contacts_analyzed: {count}
+---
+
+## Baseline Style
+**Message length:** {avg words per message}
+**Capitalization:** {pattern}
+**Punctuation:** {pattern}
+**Emoji usage:** {frequency + favorites}
+**Common phrases:** {list}
+**Greeting style:** {pattern}
+**Response style:** {pattern}
+
+## Tier Variations
+
+### Inner Circle
+{how style shifts — more casual? shorter? more slang? specific patterns}
+
+### Regular
+{shift description}
+
+### Acquaintance
+{shift description}
+
+### Low Priority
+{shift description}
+
+## Notable Contact Variations
+- **{name}**: {what's different and why — e.g., "all caps energy, lots of exclamation marks, inside jokes about X"}
+- **{name}**: {variation}
+- ...
+
+## Anti-Patterns (Things I Never Do)
+{list of things the user NEVER does in texts — helps prevent AI-sounding messages}
+```
+
+This file is the ultimate reference for tone-matching. Contact-specific profiles override it, but when a contact has `data_quality: "insufficient"` or no profile, `my-style.md` is the fallback instead of generic "friendly casual."
+
+### Step 8: Build contacts index
 
 After whitelist is set, read all `contacts/*.md` files and build `contacts-index.json`:
 
@@ -194,7 +256,7 @@ After whitelist is set, read all `contacts/*.md` files and build `contacts-index
 }
 ```
 
-### Step 8: Finalize
+### Step 9: Finalize
 
 Update `state.json`:
 ```json
@@ -206,7 +268,7 @@ Update `state.json`:
 
 Git add all changes and commit: `"init: scan {N} contacts, whitelist {M}, build memory profiles"`
 
-### Step 9: Schedule autonomous execution
+### Step 10: Schedule autonomous execution
 
 Use the `/herobrine` skill to create three scheduled agents:
 
@@ -232,7 +294,7 @@ Scheduled:
 
 Ask the user if they want to adjust any of the times.
 
-### Step 10: Report
+### Step 11: Report
 
 Report summary to user:
 - Total contacts scanned

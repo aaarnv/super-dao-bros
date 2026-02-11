@@ -27,17 +27,24 @@ Examples:
 
 Read `~/Projects/super-dao-memories/config.json`. If `whitelist.enabled` is true and the resolved contact's slug is NOT in `whitelist.slugs`, warn the user: "{name} is not on the whitelist. Add them to `config.json` whitelist or re-run `/super-dao-bros:init` to update." Stop — do not send.
 
-### Step 4: Load contact profile
+### Step 4: Load contact profile + user style
 
-Read `~/Projects/super-dao-memories/contacts/{slug}.md` and parse:
+**Always load `~/Projects/super-dao-memories/my-style.md` first** — this is your baseline voice reference.
+
+Then read `~/Projects/super-dao-memories/contacts/{slug}.md` and parse:
 - Tone profile (their style + my style with them)
 - Sample exchanges (for calibration)
 - Topics (for natural references)
 - Network (to know platform constraints — e.g., WhatsApp has message length limits)
 - Tier (inner-circle gets more personal touch)
-- `data_quality` — if `"insufficient"`, use default friendly casual tone instead of tone matching
+- `data_quality` — if `"insufficient"`, fall back to `my-style.md` tier variation for this contact's tier
 
-**If no profile exists at all** (contact not in the system), use default friendly casual tone and proceed. Don't block the send.
+**Fallback chain:**
+1. Contact-specific profile (best — exact voice for this person)
+2. `my-style.md` tier variation (good — your style with people at this tier level)
+3. `my-style.md` baseline (minimum — your general texting style)
+
+**If no profile exists at all**, use `my-style.md` baseline. If `my-style.md` also doesn't exist, use default friendly casual. Never block a send.
 
 ### Step 5: Compose message (Nam strategizes, memory dictates voice)
 
@@ -99,4 +106,4 @@ After sending, if the message implies a follow-up action (scheduling a meetup, w
 ### Error handling
 
 - If Beeper send fails, auto-retry once. If still fails, show the error
-- If the contact has no profile or `data_quality: "insufficient"`, use default friendly casual — never block a send
+- If the contact has no profile or `data_quality: "insufficient"`, fall back to `my-style.md` — never block a send

@@ -93,6 +93,7 @@ Then just add tasks to `~/Projects/super-dao-memories/tasks/inbox.md` and let Na
   config.json                        # Settings + whitelist
   state.json                         # Runtime state + locks
   contacts-index.json                # Contact lookup tables
+  my-style.md                        # Your master texting style + tier variations
   contacts/{slug}.md                 # Per-contact memory profiles
   agents/                            # Agent runtime configs
   tasks/inbox.md                     # Task inbox
