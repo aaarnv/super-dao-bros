@@ -25,6 +25,14 @@ cp "$REPO_DIR/agents/nam-dao.md" "$CLAUDE_DIR/agents/nam-dao.md"
 cp "$REPO_DIR/agents/anh-dao.md" "$CLAUDE_DIR/agents/anh-dao.md"
 echo "  ✓ Agents installed to $CLAUDE_DIR/agents/"
 
+# 2b. Install nchook handler (real-time Beeper watcher)
+echo "Installing real-time watcher..."
+mkdir -p "$HOME/.config/nchook"
+cp "$REPO_DIR/agents/nchook_script" "$HOME/.config/nchook/nchook_script"
+chmod +x "$HOME/.config/nchook/nchook_script"
+cp "$REPO_DIR/scaffold/beeper-watcher-state.template.json" "$CLAUDE_DIR/agents/beeper-watcher-state.json"
+echo "  ✓ nchook handler installed to ~/.config/nchook/nchook_script"
+
 # 3. Scaffold memories repo (if it doesn't exist)
 if [ ! -d "$MEMORIES_DIR" ]; then
   echo "Creating memories repo..."
@@ -59,5 +67,10 @@ echo "  - Beeper Desktop running + Beeper MCP plugin enabled"
 echo "  - Apple MCP plugin enabled (for calendar/reminders)"
 echo "  - YouTube MCP plugin enabled (for video summaries)"
 echo "  - Herobrine skill installed (for scheduled execution)"
+echo "  - nchook for real-time watcher: brew install who23/formulae/nchook"
+echo ""
+echo "To enable real-time message watching:"
+echo "  brew install who23/formulae/nchook"
+echo "  brew services start nchook"
 echo ""
 echo "Next step: Run /super-dao-bros:init in Claude Code"

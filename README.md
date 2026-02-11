@@ -13,6 +13,7 @@ Nam handles relationships and messaging strategy. Anh handles operations, schedu
 - Summarizes YouTube videos
 - Spawns background agents for complex research tasks
 - Delivers end-of-day digests with full activity summary
+- Responds to incoming messages in real-time via nchook + macOS Notification Center
 - Runs autonomously on a schedule via herobrine
 
 ## Prerequisites
@@ -22,6 +23,7 @@ Nam handles relationships and messaging strategy. Anh handles operations, schedu
 - Apple MCP plugin enabled (Settings > Extensions)
 - YouTube MCP plugin enabled (Settings > Extensions)
 - [Herobrine skill](https://github.com/...) installed (for scheduled execution)
+- [nchook](https://github.com/Who23/nchook) installed for real-time message watching (`brew install who23/formulae/nchook`)
 
 ## Install
 

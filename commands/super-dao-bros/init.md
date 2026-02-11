@@ -301,7 +301,39 @@ Scheduled:
 
 Ask the user if they want to adjust any of the times.
 
-### Step 11: Report
+### Step 11: Start real-time message watcher
+
+Set up nchook to trigger a Claude agent on every incoming Beeper notification:
+
+1. **Check if nchook is installed:** Run `which nchook` or `brew list nchook`
+   - If not installed: `brew install who23/formulae/nchook`
+
+2. **Install the handler script:**
+   ```bash
+   mkdir -p ~/.config/nchook
+   ```
+   Copy the nchook_script (from the super-dao-bros repo `agents/nchook_script`) to `~/.config/nchook/nchook_script` and make it executable.
+
+3. **Start nchook service:**
+   ```bash
+   brew services start nchook
+   ```
+
+4. **Initialize watcher state:**
+   Create `~/.claude/agents/beeper-watcher-state.json` with `{"cooldowns": {}}`
+
+5. **Test it:** Tell the user: "Real-time watcher is active. When someone messages you on Beeper, a Claude agent will fire within seconds to handle it. Whitelisted contacts only. 5-minute cooldown per sender to prevent loops."
+
+Report:
+```
+Real-time watcher:
+  nchook         → ✓ installed + running
+  Handler script → ✓ ~/.config/nchook/nchook_script
+  Safeguards     → whitelist only, 5-min cooldown, run-lock respect
+  Kill switch    → brew services stop nchook
+```
+
+### Step 12: Report
 
 Report summary to user:
 - Total contacts scanned

@@ -1,0 +1,145 @@
+#!/bin/bash
+# Super DAO Bros — Beeper Notification Handler
+# Called by nchook on every macOS notification
+# Args: $1=APP $2=TITLE $3=BODY $4=TIME (unix timestamp)
+
+APP="$1"
+TITLE="$2"
+BODY="$3"
+TIME="$4"
+
+# Only care about Beeper notifications
+[[ "$APP" != *"Beeper"* ]] && exit 0
+
+AGENTS_DIR="$HOME/.claude/agents"
+MEMORIES_DIR="$HOME/Projects/super-dao-memories"
+STATE_FILE="$AGENTS_DIR/beeper-watcher-state.json"
+CONFIG="$MEMORIES_DIR/config.json"
+LOG_FILE="$AGENTS_DIR/logs/beeper-watcher.log"
+
+# Ensure log dir exists
+mkdir -p "$AGENTS_DIR/logs"
+
+# Initialize state if missing
+[[ ! -f "$STATE_FILE" ]] && echo '{"cooldowns":{}}' > "$STATE_FILE"
+
+# Skip if memories repo doesn't exist (init hasn't run)
+if [[ ! -d "$MEMORIES_DIR" ]]; then
+    echo "$(date): Skipping — super-dao-memories not initialized" >> "$LOG_FILE"
+    exit 0
+fi
+
+# Skip if config doesn't exist
+if [[ ! -f "$CONFIG" ]]; then
+    echo "$(date): Skipping — config.json not found" >> "$LOG_FILE"
+    exit 0
+fi
+
+# Check run lock — don't interfere with an active /run
+RUN_LOCK=$(jq -r '.run_lock // false' "$MEMORIES_DIR/state.json" 2>/dev/null)
+if [[ "$RUN_LOCK" == "true" ]]; then
+    echo "$(date): Skipping $TITLE — run lock active" >> "$LOG_FILE"
+    exit 0
+fi
+
+# Check whitelist — match TITLE (sender name) against contact profiles
+WHITELIST_ENABLED=$(jq -r '.whitelist.enabled // false' "$CONFIG" 2>/dev/null)
+SLUG=""
+
+if [[ "$WHITELIST_ENABLED" == "true" ]]; then
+    # Search contacts by display name to find slug
+    MATCH=$(grep -rl "name: \"$TITLE\"" "$MEMORIES_DIR/contacts/" 2>/dev/null | head -1)
+    if [[ -z "$MATCH" ]]; then
+        # Try case-insensitive partial match
+        MATCH=$(grep -ril "name:.*$TITLE" "$MEMORIES_DIR/contacts/" 2>/dev/null | head -1)
+    fi
+
+    if [[ -z "$MATCH" ]]; then
+        echo "$(date): Skipping $TITLE — no contact profile found" >> "$LOG_FILE"
+        exit 0
+    fi
+
+    SLUG=$(basename "$MATCH" .md)
+
+    WHITELISTED=$(jq -r --arg s "$SLUG" 'if .whitelist.slugs | index($s) then "true" else "false" end' "$CONFIG" 2>/dev/null)
+    if [[ "$WHITELISTED" != "true" ]]; then
+        echo "$(date): Skipping $TITLE ($SLUG) — not whitelisted" >> "$LOG_FILE"
+        exit 0
+    fi
+else
+    # No whitelist — try to find slug anyway for the prompt
+    MATCH=$(grep -rl "name: \"$TITLE\"" "$MEMORIES_DIR/contacts/" 2>/dev/null | head -1)
+    [[ -n "$MATCH" ]] && SLUG=$(basename "$MATCH" .md)
+fi
+
+# Check cooldown (5 min per sender)
+SENDER_KEY=$(echo "$TITLE" | tr ' ' '-' | tr '[:upper:]' '[:lower:]')
+COOLDOWN_UNTIL=$(jq -r --arg k "$SENDER_KEY" '.cooldowns[$k] // "1970-01-01T00:00:00"' "$STATE_FILE" 2>/dev/null)
+NOW=$(date -u +%Y-%m-%dT%H:%M:%S)
+
+if [[ "$NOW" < "$COOLDOWN_UNTIL" ]]; then
+    echo "$(date): Cooldown active for $TITLE, skipping" >> "$LOG_FILE"
+    exit 0
+fi
+
+# Set cooldown (5 min from now)
+COOLDOWN_NEW=$(date -u -v+5M +%Y-%m-%dT%H:%M:%S)
+jq --arg k "$SENDER_KEY" --arg v "$COOLDOWN_NEW" '.cooldowns[$k] = $v' "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+
+echo "$(date): New message from $TITLE: $BODY — triggering agent" >> "$LOG_FILE"
+
+# Build the slug reference for the prompt
+SLUG_LINE=""
+if [[ -n "$SLUG" ]]; then
+    SLUG_LINE="Their contact slug is: $SLUG (profile at ~/Projects/super-dao-memories/contacts/${SLUG}.md)"
+fi
+
+# Build dynamic agent prompt
+PROMPT="URGENT: New inbound message detected from $TITLE.
+Message preview: \"$BODY\"
+$SLUG_LINE
+
+You are responding to a real-time incoming message. Act as Nam Dao (CEO).
+
+1. Find this contact in ~/Projects/super-dao-memories/contacts/ by searching for name \"$TITLE\"
+2. Read their contact profile for tone/style reference
+3. Read ~/Projects/super-dao-memories/my-style.md for your voice baseline
+4. Read the full recent conversation via mcp__beeper__list_messages (paginate 3 pages) to understand full context — don't just rely on the preview
+5. DECIDE: Does this need a reply right now?
+   - Question, request, invitation, continuing thread → YES
+   - Reaction, emoji, acknowledgment, conversation-ending → NO
+   - If unsure, lean toward replying
+6. If YES: compose and send a tone-matched reply via mcp__beeper__send_message
+   - Match the user's exact voice from the profile (slang, length, emoji, punctuation)
+   - Nam decides the strategic angle; memory profile dictates the actual words
+   - The message must be indistinguishable from one the user would send
+7. If NO: log 'no reply needed' and exit
+8. After sending, check for follow-up triggers:
+   - Date/time/plan mentioned → create calendar event via mcp__apple-mcp__calendar
+   - Waiting for response → create reminder via mcp__apple-mcp__reminders for 24h later
+   - Commitment made → create reminder with best-guess deadline
+9. Log what you did to ~/Projects/super-dao-memories/logs/ and update state.json stats
+10. Auto-refresh the contact's tone profile — pull their latest 50 messages and update contacts/{slug}.md"
+
+# Create temporary agent config and run
+TEMP_AGENT="dao-reply-$(date +%s)"
+mkdir -p "$AGENTS_DIR/schedules"
+
+cat > "$AGENTS_DIR/schedules/$TEMP_AGENT.json" <<EOF
+{
+    "name": "$TEMP_AGENT",
+    "prompt": $(echo "$PROMPT" | jq -Rs .),
+    "directory": "$HOME",
+    "model": "sonnet",
+    "max_turns": 15,
+    "delivery_chat": "$(jq -r '.self_chat_id // ""' "$CONFIG" 2>/dev/null)"
+}
+EOF
+
+# Fire agent in background
+nohup bash "$AGENTS_DIR/run-agent.sh" "$TEMP_AGENT" >> "$LOG_FILE" 2>&1 &
+
+# Clean up temp config after agent has read it
+(sleep 30 && rm -f "$AGENTS_DIR/schedules/$TEMP_AGENT.json") &
+
+exit 0
