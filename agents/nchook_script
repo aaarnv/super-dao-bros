@@ -43,14 +43,21 @@ if [[ "$RUN_LOCK" == "true" ]]; then
 fi
 
 # Check whitelist — match TITLE (sender name) against contact profiles
+# If TITLE is generic (e.g., "New Message" from badge watcher), skip whitelist
+# check here and let the Claude agent handle it — it will check the whitelist itself
 WHITELIST_ENABLED=$(jq -r '.whitelist.enabled // false' "$CONFIG" 2>/dev/null)
 SLUG=""
+GENERIC_TRIGGER=false
 
-if [[ "$WHITELIST_ENABLED" == "true" ]]; then
-    # Search contacts by display name to find slug
+if [[ "$TITLE" == "New Message" || "$TITLE" == "" || "$TITLE" == "Badge"* ]]; then
+    # Generic trigger from badge watcher — can't match sender name
+    # Let the agent figure out who messaged and check whitelist
+    GENERIC_TRIGGER=true
+    echo "$(date): Generic Beeper trigger (badge change) — delegating to agent" >> "$LOG_FILE"
+elif [[ "$WHITELIST_ENABLED" == "true" ]]; then
+    # We have a real sender name — try to match against contacts
     MATCH=$(grep -rl "name: \"$TITLE\"" "$MEMORIES_DIR/contacts/" 2>/dev/null | head -1)
     if [[ -z "$MATCH" ]]; then
-        # Try case-insensitive partial match
         MATCH=$(grep -ril "name:.*$TITLE" "$MEMORIES_DIR/contacts/" 2>/dev/null | head -1)
     fi
 
@@ -67,7 +74,6 @@ if [[ "$WHITELIST_ENABLED" == "true" ]]; then
         exit 0
     fi
 else
-    # No whitelist — try to find slug anyway for the prompt
     MATCH=$(grep -rl "name: \"$TITLE\"" "$MEMORIES_DIR/contacts/" 2>/dev/null | head -1)
     [[ -n "$MATCH" ]] && SLUG=$(basename "$MATCH" .md)
 fi
@@ -95,7 +101,34 @@ if [[ -n "$SLUG" ]]; then
 fi
 
 # Build dynamic agent prompt
-PROMPT="URGENT: New inbound message detected from $TITLE.
+if [[ "$GENERIC_TRIGGER" == "true" ]]; then
+    # Badge watcher — agent needs to discover who messaged
+    PROMPT="URGENT: Beeper notification detected — someone just messaged.
+
+You are responding to a real-time incoming message. Act as Nam Dao (CEO).
+
+1. DISCOVER who messaged: Use mcp__beeper__search_chats to find chats with recent activity, then mcp__beeper__list_messages on the most recent ones to find the new inbound message
+2. Read ~/Projects/super-dao-memories/config.json — check if the sender is whitelisted. If whitelist.enabled is true and they're NOT in whitelist.slugs, log 'not whitelisted' and exit
+3. Read their contact profile from ~/Projects/super-dao-memories/contacts/{slug}.md
+4. Read ~/Projects/super-dao-memories/my-style.md for your voice baseline
+5. Read the full recent conversation via mcp__beeper__list_messages (paginate 3 pages) for context
+6. DECIDE: Does this need a reply right now?
+   - Question, request, invitation, continuing thread → YES
+   - Reaction, emoji, acknowledgment, conversation-ending → NO
+   - If unsure, lean toward replying
+7. If YES: compose and send a tone-matched reply via mcp__beeper__send_message
+   - Match the user's exact voice from the profile (slang, length, emoji, punctuation)
+   - Nam decides the strategic angle; memory profile dictates the actual words
+   - The message must be indistinguishable from one the user would send
+8. If NO: log 'no reply needed' and exit
+9. After sending, check for follow-up triggers:
+   - Date/time/plan mentioned → create calendar event via mcp__apple-mcp__calendar
+   - Waiting for response → create reminder via mcp__apple-mcp__reminders for 24h later
+   - Commitment made → create reminder with best-guess deadline
+10. Log what you did to ~/Projects/super-dao-memories/logs/ and update state.json stats
+11. Auto-refresh the contact's tone profile"
+else
+    PROMPT="URGENT: New inbound message detected from $TITLE.
 Message preview: \"$BODY\"
 $SLUG_LINE
 
@@ -120,6 +153,7 @@ You are responding to a real-time incoming message. Act as Nam Dao (CEO).
    - Commitment made → create reminder with best-guess deadline
 9. Log what you did to ~/Projects/super-dao-memories/logs/ and update state.json stats
 10. Auto-refresh the contact's tone profile — pull their latest 50 messages and update contacts/{slug}.md"
+fi
 
 # Create temporary agent config and run
 TEMP_AGENT="dao-reply-$(date +%s)"
