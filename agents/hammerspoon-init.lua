@@ -2,6 +2,7 @@
 -- Watches for Beeper Desktop notifications via macOS Notification Center
 -- and triggers a Claude agent to handle incoming messages
 
+require("hs.ipc")
 local log = hs.logger.new("beeper-watcher", "info")
 
 -- Shell escape helper
@@ -132,17 +133,30 @@ local function watchNotificationBanners()
     return observer
 end
 
--- Alternative simpler approach: Watch Beeper's dock badge
+-- Watch Beeper's dock badge — triggers on badge changes AND re-checks stale unreads
 local function watchBeeperBadge()
     local lastBadge = ""
+    local lastBadgeChangeTime = 0  -- When badge last changed to a non-zero value
+
+    local function triggerHandler(badge)
+        local now = os.time()
+        if now - lastTriggerTime >= COOLDOWN_SECONDS then
+            lastTriggerTime = now
+            local cmd = string.format(
+                '%s/.config/nchook/nchook_script "Beeper Desktop" "New Message" "Badge: %s" %d &',
+                os.getenv("HOME"),
+                badge,
+                now
+            )
+            os.execute(cmd)
+        end
+    end
 
     local timer = hs.timer.doEvery(5, function()
         local beeperApp = hs.application.find("Beeper")
         if not beeperApp then return end
 
         pcall(function()
-            local axApp = hs.axuielement.applicationElement(beeperApp)
-            -- Check dock tile for badge
             local dockApp = hs.application.find("Dock")
             if not dockApp then return end
 
@@ -157,24 +171,25 @@ local function watchBeeperBadge()
                         local itemTitle = item:attributeValue("AXTitle") or ""
                         if string.find(itemTitle, "Beeper") then
                             local badge = item:attributeValue("AXStatusLabel") or ""
+                            local now = os.time()
+
                             if badge ~= "" and badge ~= lastBadge then
+                                -- Badge count changed — immediate trigger
                                 log.i("Beeper badge changed: " .. lastBadge .. " -> " .. badge)
                                 lastBadge = badge
-
-                                local now = os.time()
-                                if now - lastTriggerTime >= COOLDOWN_SECONDS then
-                                    lastTriggerTime = now
-                                    -- Trigger with minimal info — agent will read the actual messages
-                                    local cmd = string.format(
-                                        '%s/.config/nchook/nchook_script "Beeper Desktop" "New Message" "Badge: %s" %d &',
-                                        os.getenv("HOME"),
-                                        badge,
-                                        now
-                                    )
-                                    os.execute(cmd)
+                                lastBadgeChangeTime = now
+                                triggerHandler(badge)
+                            elseif badge ~= "" and badge == lastBadge then
+                                -- Badge unchanged but still has unreads
+                                -- Re-trigger every 30s in case a new message arrived
+                                -- without changing the badge count (e.g., was already unread)
+                                if now - lastTriggerTime >= 30 then
+                                    log.i("Beeper badge still " .. badge .. " — re-checking for new messages")
+                                    triggerHandler(badge)
                                 end
                             elseif badge == "" and lastBadge ~= "" then
-                                lastBadge = ""  -- Badge cleared (messages read)
+                                lastBadge = ""
+                                lastBadgeChangeTime = 0
                             end
                         end
                     end
@@ -183,7 +198,7 @@ local function watchBeeperBadge()
         end)
     end)
 
-    log.i("Beeper badge watcher started (5s interval)")
+    log.i("Beeper badge watcher started (5s interval, 30s stale re-check)")
     return timer
 end
 
