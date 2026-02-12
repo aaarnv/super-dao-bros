@@ -78,18 +78,21 @@ else
     [[ -n "$MATCH" ]] && SLUG=$(basename "$MATCH" .md)
 fi
 
-# Check cooldown (5 min per sender)
-SENDER_KEY=$(echo "$TITLE" | tr ' ' '-' | tr '[:upper:]' '[:lower:]')
+# Check cooldown (90 seconds global — prevents rapid duplicate triggers)
+# We use a global cooldown since badge triggers don't carry sender info.
+# The agent itself handles per-contact logic (won't reply to the same person
+# if they already got a reply in the conversation).
+SENDER_KEY="global"
 COOLDOWN_UNTIL=$(jq -r --arg k "$SENDER_KEY" '.cooldowns[$k] // "1970-01-01T00:00:00"' "$STATE_FILE" 2>/dev/null)
 NOW=$(date -u +%Y-%m-%dT%H:%M:%S)
 
 if [[ "$NOW" < "$COOLDOWN_UNTIL" ]]; then
-    echo "$(date): Cooldown active for $TITLE, skipping" >> "$LOG_FILE"
+    echo "$(date): Cooldown active ($COOLDOWN_UNTIL), skipping" >> "$LOG_FILE"
     exit 0
 fi
 
-# Set cooldown (5 min from now)
-COOLDOWN_NEW=$(date -u -v+5M +%Y-%m-%dT%H:%M:%S)
+# Set cooldown (90 seconds from now)
+COOLDOWN_NEW=$(date -u -v+90S +%Y-%m-%dT%H:%M:%S)
 jq --arg k "$SENDER_KEY" --arg v "$COOLDOWN_NEW" '.cooldowns[$k] = $v' "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
 
 echo "$(date): New message from $TITLE: $BODY — triggering agent" >> "$LOG_FILE"
